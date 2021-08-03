@@ -1,0 +1,57 @@
+version: '3'
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - 8092:80
+    volumes:
+      - ./nginx/:/etc/nginx/conf.d
+      - ./laravel:/var/www/laravel/
+    links:
+      - phpfpm
+    depends_on:
+      - phpfpm
+  phpfpm:
+    build:
+      context: .
+      dockerfile: ./php-fpm/Dockerfile
+    volumes:
+        - ./laravel:/var/www/laravel/
+    links: 
+        - db
+    depends_on:
+        - db
+    environment:
+        - DB_HOST=db
+        - DB_DATABASE=db_data
+        - DB_USERNAME=root
+        - DB_PASSWORD=root
+    working_dir: "/var/www/laravel/"
+  db:
+    image: mysql:8.0
+    container_name: db-laravel8x
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: db_data
+      MYSQL_USER: docker
+      MYSQL_PASSWORD: docker
+      TZ: 'Asia/Ho_Chi_Minh'
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - ./db/data:/var/lib/mysql
+      - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./db/sql:/docker-entrypoint-initdb.d
+    ports:
+      - 3306:3306
+
+  phpmyadmin:
+    container_name: phpmyadmin
+    image: phpmyadmin/phpmyadmin
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOSTS=db
+      - PMA_USER=root
+      - PMA_PASSWORD=root
+    ports:
+      - 8093:80
